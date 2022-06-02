@@ -198,7 +198,7 @@ ipc.on("project-stats", (event, visible) => {
 
         messageLines.push(i18n._("Notes: Words should be accurate. Knots include functions. Gathers and diverts may include some implicitly added ones by the compiler, for example in weave. Diverts include END and DONE."));
 
-        alert(messageLines.join("\n"));
+        ipc.invoke("show-word-count", messageLines.join("\n"));
     });
 });
 

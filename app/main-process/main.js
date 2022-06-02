@@ -43,8 +43,17 @@ ipcMain.on('show-context-menu', (event) => {
 
 ipcMain.handle("showSaveDialog", async (event,saveOptions) => {
     return dialog.showSaveDialog(saveOptions) 
+});
 
-})
+ipcMain.handle("show-word-count", async (event, incomingMessage) =>{
+        const options = {
+            type: "none",
+            buttons: ["Okay"],
+            title: "Alert Message!",
+            message: incomingMessage
+        }
+        dialog.showMessageBox(event.render, options)
+});
 
 ipcMain.handle("try-close", async (event) =>{
     return dialog.showMessageBox({
