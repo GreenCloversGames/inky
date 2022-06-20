@@ -13,10 +13,13 @@ const electronWindowOptions = {
   height: 730,
   minWidth: 350,
   minHeight: 250,
-  titleBarStyle: 'hidden',
+  titleBarStyle: 'default',
   webPreferences: {
-      preload: path.join(__dirname, '..', 'renderer', 'preload.js')
-  }
+    preload: path.join(__dirname, '..', 'renderer', 'preload.js'),
+    nodeIntegration: true,
+  contextIsolation: false
+  },
+  
 };
 
 var windows = [];
