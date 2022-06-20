@@ -1,6 +1,4 @@
-const remote = require('electron').remote;
-const dialog = remote.dialog;
-const ipc = require("electron").ipcRenderer;
+const {ipcRenderer} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const _ = require("lodash");
@@ -179,7 +177,7 @@ InkProject.prototype.refreshUnsavedChanges = function() {
 
     // Overall, are there *any* unsaved changes, and has the state changed?
     // Change the dot in the Mac close window button
-    remote.getCurrentWindow().setDocumentEdited(this.hasUnsavedChanges);
+    ipcRenderer.send("change-mac-dot", this.hasUnsavedChanges);
 }
 
 InkProject.prototype.startFileWatching = function() {
@@ -211,7 +209,7 @@ InkProject.prototype.startFileWatching = function() {
             return false; // not a settings file
         }
 
-        ipc.send("project-settings-needs-reload", mainInkPath);
+        ipcRenderer.send("project-settings-needs-reload", mainInkPath);
 
         return true; // yes, it was a settings file
     }
@@ -319,7 +317,7 @@ InkProject.prototype.save = function() {
     this.mainInk.save(success => {
         singleFileSaveComplete(this.mainInk, success);
 
-        ipc.send("main-file-saved", this.mainInk.absolutePath());
+        ipcRenderer.send("main-file-saved", this.mainInk.absolutePath());
 
         // May not be a success if cancelled, in which case we stop early
         if( success ) {
@@ -398,7 +396,8 @@ InkProject.prototype.export = function(exportType) {
             ]
         }
 
-        dialog.showSaveDialog(remote.getCurrentWindow(), saveOptions, (targetSavePath) => {
+        ipcRenderer.invoke('showSaveDialog', saveOptions).then((result) => {
+            let targetSavePath = result.filePath;
             if( targetSavePath ) { 
                 this.defaultExportPath = targetSavePath;
 
@@ -521,18 +520,9 @@ InkProject.prototype.buildForWeb = function(jsonFilePath, targetDirectory) {
 
 InkProject.prototype.tryClose = function() {
     if( this.hasUnsavedChanges ) {
-        dialog.showMessageBox(remote.getCurrentWindow(), {
-            type: "warning",
-            message: i18n._("Would you like to save changes before exiting?"),
-            detail: i18n._("Your changes will be lost if you don't save."),
-            buttons: [
-                i18n._("Save"),
-                i18n._("Don't save"),
-                i18n._("Cancel")
-            ],
-            defaultId: 0
-        }, (response) => {
-            // Save
+        ipc.invoke("try-close").then((responseObject) => {
+            var response = responseObject.response;
+
             if( response == 0 ) {
                 this.save(false, () => {
                     this.closeImmediate();
@@ -546,7 +536,7 @@ InkProject.prototype.tryClose = function() {
 
             // Cancel
             else { 
-                ipc.send("project-cancelled-close");
+                ipcRenderer.send("project-cancelled-close");
             }
         });
     } 
@@ -558,7 +548,7 @@ InkProject.prototype.tryClose = function() {
 }
 
 InkProject.prototype.closeImmediate = function() {
-    ipc.send("project-final-close");
+    ipcRenderer.send("project-final-close");
 }
 
 InkProject.prototype.inkFileWithRelativePath = function(relativePath) {
@@ -700,54 +690,54 @@ InkProject.setProject = function(project) {
     InkProject.events.newProject(project);
 }
 
-ipc.on("set-project-main-ink-filepath", (event, filePath) => {
+ipcRenderer.on("set-project-main-ink-filepath", (event, filePath) => {
     InkProject.loadProject(filePath);
 });
 
-ipc.on("open-main-ink", (event) => {
+ipcRenderer.on("open-main-ink", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.showInkFile(InkProject.currentProject.mainInk);
     }
 });
 
-ipc.on("project-new-include", () => {
+ipcRenderer.on("project-new-include", () => {
     if( InkProject.currentProject ) {
         NavView.show();
         NavView.showAddIncludeForm();
     }
 });
 
-ipc.on("project-save", (event) => {
+ipcRenderer.on("project-save", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.save();
     }
 });
 
-ipc.on("project-export", (event) => {
+ipcRenderer.on("project-export", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.exportJson();
     }
 });
 
-ipc.on("project-export-for-web", (event) => {
+ipcRenderer.on("project-export-for-web", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.exportForWeb();
     }
 });
 
-ipc.on("project-export-js-only", (event) => {
+ipcRenderer.on("project-export-js-only", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.exportJSOnly();
     }
 });
 
-ipc.on("project-tryClose", (event) => {
+ipcRenderer.on("project-tryClose", (event) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.tryClose();
     }
 });
 
-ipc.on("project-settings-changed", (event, settings) => {
+ipcRenderer.on("project-settings-changed", (event, settings) => {
     if( InkProject.currentProject ) {
         InkProject.currentProject.refreshProjectSettings(settings);
     }
