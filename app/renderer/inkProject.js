@@ -520,7 +520,7 @@ InkProject.prototype.buildForWeb = function(jsonFilePath, targetDirectory) {
 
 InkProject.prototype.tryClose = function() {
     if( this.hasUnsavedChanges ) {
-        ipc.invoke("try-close").then((responseObject) => {
+        ipcRenderer.invoke("try-close").then((responseObject) => {
             var response = responseObject.response;
 
             if( response == 0 ) {
